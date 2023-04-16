@@ -1,0 +1,5 @@
+.vs/
+MDService/obj/
+MDService/bin/
+*.dll
+*.pdg

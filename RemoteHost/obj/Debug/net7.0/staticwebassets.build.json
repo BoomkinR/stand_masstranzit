@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "mcHB9rGnDKx3jBuLA3RFsfzdAyLEgO5NXptPQaVt+Aw=",
+  "Source": "RemoteHost",
+  "BasePath": "_content/RemoteHost",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
