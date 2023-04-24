@@ -36,8 +36,9 @@ public class Controller: ControllerBase
     [HttpGet("start")]
     public async Task Start()
     {
-        var documentsId = _dbContext.Documents.Select(x => x.Id).AsAsyncEnumerable();
-        await foreach (var id in documentsId)
+        // var documentsId = _dbContext.Documents.Select(x => x.Id).AsAsyncEnumerable();
+        var documentsId =Enumerable.Range(1, 1000).ToList();
+        foreach (var id in documentsId)
         {
             await _publishEndpoint.Publish(
                 new DataAdded

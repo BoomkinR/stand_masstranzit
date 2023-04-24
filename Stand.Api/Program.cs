@@ -28,7 +28,8 @@ builder.Services.AddMassTransit(
                 o.UsePostgres();
                 o.UseBusOutbox(ot => ot.MessageDeliveryLimit = 500);
                 o.DuplicateDetectionWindow = TimeSpan.Zero;
-            }); 
+                // o.DuplicateDetectionWindow = TimeSpan.FromSeconds(9);
+            });
 
         x.AddConsumer<FirstConsumer>(
             typeof(FirstConsumerDefinition), cfg =>
@@ -41,6 +42,8 @@ builder.Services.AddMassTransit(
             });
         x.AddConsumer<SecondConsumer>(
             typeof(SecondConsumerDefinition));
+        x.AddConsumer<RingConsumer>(
+            typeof(RingConsumerDefinition));
         x.SetKebabCaseEndpointNameFormatter();
         x.AddDelayedMessageScheduler();
         x.UsingRabbitMq(
@@ -54,6 +57,9 @@ builder.Services.AddMassTransit(
                     dbContext.Database.Migrate();
                 cfg.UseDelayedMessageScheduler();
                 cfg.ConfigureEndpoints(context);
+                cfg.UsePublishFilter(typeof(SemdValidatedPriorityFilter<>), context);
+
+                // cfg.UseDelayedRedelivery(r => r.Intervals(TimeSpan.FromSeconds(5)));
 
                 cfg.Host(
                     builder.Configuration["Rabbit:Host"],

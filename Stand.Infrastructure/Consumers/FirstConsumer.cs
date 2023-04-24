@@ -1,4 +1,5 @@
 ﻿using MassTransit;
+using MassTransit.Introspection;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Stand.Infrastructure.Contracts;
@@ -20,6 +21,17 @@ public class FirstConsumerDefinition :
         IConsumerConfigurator<FirstConsumer> consumerConfigurator)
     {
         endpointConfigurator.UseEntityFrameworkOutbox<DocumentContext>(_serviceProvider);
+        // endpointConfigurator.UseMessageRetry(r =>
+        // {
+        //     r.Immediate(2);
+        //     r.Ignore(typeof(EndpointException));
+        // });
+        endpointConfigurator.UseDelayedRedelivery(
+            opt =>
+            {
+                opt.Interval(100,TimeSpan.FromSeconds(2));
+                opt.Handle(typeof(EndpointException));
+            });
     }
 }
 
@@ -33,19 +45,23 @@ public class FirstConsumer : IConsumer<DataAdded>
     }
     public async Task Consume(ConsumeContext<DataAdded> context)
     {
+        // var msg = context;
+        // var doc = await _dbContext.Documents.FirstAsync(x => x.Id == msg.Message.Id-100);
+        await Task.Delay(TimeSpan.FromMilliseconds(200));
+        var a = context.Headers.TryGetHeader("MT-Redelivery-Count", out var hz);
+        if (a)
+        {
+            Console.WriteLine("ПРИХОД ПРИШЕЛ - ЕПТА  + "+DateTime.Now);
+            return;
+        }
+        if (context.Message.Id == 1)
+        {
+            Console.WriteLine(context.MessageId + "  -  "+ DateTime.Now);
+            throw new EndpointException();
+        }
 
-        await context.Redeliver(
-            TimeSpan.FromSeconds(5), (
-                consumeContext,
-                sendContext) =>
-            {
-
-            });
+        await Task.Delay(TimeSpan.FromSeconds(1));
         await _dbContext.SaveChangesAsync();
-
-
-
-
 
         // var msg = context;
         //     var doc = await _dbContext.Documents.FirstAsync(x => x.Id == msg.Message.Id);
@@ -60,18 +76,7 @@ public class FirstConsumer : IConsumer<DataAdded>
         //     }
         //
         //     doc.IsComplete = !doc.IsComplete;
-        // var client = new HttpClient();
-        // client.BaseAddress = new Uri("https://localhost:44318/", UriKind.Absolute);
-        // var a = _dbContext.Database.CurrentTransaction;
-        // var querybuilder = new QueryBuilder(
-        //     new[]
-        //     {
-        //         new KeyValuePair<string, string>("id", doc.Id.ToString())
-        //     });
         //
-        // await _dbContext.SaveChangesAsync();
-        // var name = await client.GetAsync("remote/resend" + querybuilder);
-        // Console.WriteLine(name.Content.ToString());
         //
         // // await Task.Delay(TimeSpan.FromSeconds(1));
         // var log = $"----------------------------------------------------\n" +
@@ -80,6 +85,9 @@ public class FirstConsumer : IConsumer<DataAdded>
         //           $"----------------------{DateTime.UtcNow}-----------------------------------";
         // Console.WriteLine(log);
         //
+        //
+        // // await Ring(context);
+        //
         // await context.Publish(
         //     new DataPerformed
         //     {
@@ -87,5 +95,20 @@ public class FirstConsumer : IConsumer<DataAdded>
         //     });
         //
         // await _dbContext.SaveChangesAsync();
+    }
+    public async Task Ring(ConsumeContext<DataAdded> context)
+    {
+        // var client = new HttpClient();
+        // client.BaseAddress = new Uri("https://localhost:44318/", UriKind.Absolute);
+        // var a = _dbContext.Database.CurrentTransaction;
+        // var querybuilder = new QueryBuilder(
+        //     new[]
+        //     {
+        //         new KeyValuePair<string, string>("id", context.Message.Id.ToString())
+        //     });
+        //
+        // await _dbContext.SaveChangesAsync();
+        // var name = await client.GetAsync("remote/resend" + querybuilder);
+        // Console.WriteLine("NAME Changed");
     }
 }
